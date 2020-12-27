@@ -14,22 +14,43 @@ pip install kitefly
 Create a pipeline file in your repository (e.g. `my_pipeline.py`). Here's a simple example:
 ```
 # File: my_pipeline.py
-from kitefly import Step, Target, Wait, run
+from kitefly import Command, Group, Target, Wait, run
 
 
 lib = Target('src/lib', 'src/lib-v2')
-app = Target('src/app') >> (lib,)
+app = Target('src/app')
+app >> lib
 py_files = Target('**/*.py')
 
-test_collector = Step('Test Collector', 'script/test-collector.sh')
+test_results = Step('Collect test results', 'script/test-collector.sh')
+coverage = Step('Collect code coverage', 'script/coverage-collector.sh')
 
 run(Pipeline(
-  Step('Run app tests', 'script/test-app.sh', targets=target_app) >> test_collector,
-  Step('Run library tests', 'script/test-lib.sh', targets=target_lib) >> test_collector,
-  Step('Run e2e tests', './script/e2e.sh', targets=(target_app,target_lib)) >> test_collector,
+  Group(
+    Command(
+      'Run app tests',
+      'script/test-app.sh',
+      targets=target_app
+    ) >> coverage,
+    Command(
+      'Run library tests',
+      'script/test-lib.sh',
+      targets=target_lib
+    ),
+    Command(
+      'Run e2e tests',
+      'script/e2e.sh',
+      targets=(target_app,target_lib)
+     )
+  ) >> test_results,
   Wait(),
-  Step('Run pylint', './script/pylint.sh', targets=py_files, env={PYENV: "project-3.6.3"}) >> test_collector,
-  Step('Publish test artifacts ', './script/publish-test-results.sh')
+  Command(
+    'Run pylint',
+    './script/pylint.sh',
+    targets=py_files,
+    env={PYENV: "project-3.6.3"}
+  ) >> ,
+  Command('Publish test artifacts ', './script/publish-test-results.sh')
 ))
 ```
 
