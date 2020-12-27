@@ -1,0 +1,1 @@
+doc/img/logo.png filter=lfs diff=lfs merge=lfs -text

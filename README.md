@@ -1,4 +1,4 @@
-# kitefly
+![Kitefly](doc/img/logo.png)
 
 Dynamically generate Buildkite pipeline files with composable python models
 
