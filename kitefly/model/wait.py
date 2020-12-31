@@ -14,5 +14,8 @@ class Wait(Step):
 
   def asdict(self) -> dict:
     d = super().asdict()
-    d = {"wait": "~"}
+    d["wait"] = "~"
     if self.continue_on_failure:
+      d["continue_on_failure"] = True
+    return d
+

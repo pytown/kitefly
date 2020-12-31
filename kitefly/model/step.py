@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import Optional, List
+
+from .target import Target
 from ..util import generate_key
 
 class Step:
@@ -8,19 +10,22 @@ class Step:
     Params:
 
     """
-    def __init__(self, when: str = "", branches: str = "", **kwargs):
+    def __init__(self,
+        when: str = "",
+        branches: str = "",
+        allow_dependency_failure: bool = False,
+        targets: Optional[List[Target]] = None,
+        **kwargs
+    ):
         self.key = None
         self.when = when
         self.depends_on = []
         self.branches = branches
+        self.allow_dependency_failure = allow_dependency_failure
         self.properties = kwargs
-
-    def __iadd__(self, val: any):
-        """
-        Generic noop for inline adding used primarily so that Group objects containing
-        different types of steps can safely inline-add to all steps
-        """
-        pass
+        self.targets = targets or []
+        if not self.targets:
+            self.targets = getattr(self.__class__, 'targets', [])
 
     def asdict(self) -> dict:
         d = {}
@@ -30,6 +35,8 @@ class Step:
             d['depends_on'] = self.depends_on
         if self.branches:
             d['branches'] = self.branches
+        if self.allow_dependency_failure:
+            d['allow_dependency_failure'] = True
         if self.properties:
             d.update(self.properties)
         return d

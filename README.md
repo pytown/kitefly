@@ -16,7 +16,6 @@ Create a pipeline file in your repository (e.g. `my_pipeline.py`). Here's a simp
 # File: my_pipeline.py
 from kitefly import Command, Group, Target, Wait, run
 
-
 lib = Target('src/lib', 'src/lib-v2')
 app = Target('src/app')
 app >> lib
@@ -30,17 +29,17 @@ run(Pipeline(
     Command(
       'Run app tests',
       'script/test-app.sh',
-      targets=target_app
+      targets=[target_app],
     ) >> coverage,
     Command(
       'Run library tests',
       'script/test-lib.sh',
-      targets=target_lib
+      targets=[target_lib],
     ),
     Command(
       'Run e2e tests',
       'script/e2e.sh',
-      targets=(target_app,target_lib)
+      targets=[target_app, target_lib]
      )
   ) >> test_results,
   Wait(),
@@ -57,7 +56,7 @@ run(Pipeline(
 The pipeline can now be generated as follows within Buildkite:
 
 ```
-kitefly ./my_pipeline.py | buildkite-agent upload
+python my_pipeline.py | buildkite-agent upload
 ```
 
 By default, `kitefly` will use the base branch file comparison based on Buildkite ENV variables to filter the list of steps to only include those matching affected "Targets", i.e. those whose file lists from the git branch comparison match the file specs of the given targets.

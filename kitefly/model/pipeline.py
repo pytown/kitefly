@@ -1,4 +1,4 @@
-from typing import Tuple, Union, List, Iterable
+from typing import Iterable, List, Optional, Tuple, Union
 
 from .group import Group
 from .step import Step
@@ -24,14 +24,39 @@ class Pipeline:
     return Pipeline(*self.items)
 
   def steps(self) -> List[Step]:
-    seen: dict = {}
+    """
+    Flatten nested group structure into a list of Step objects where:
+    1. Steps with keys (Command steps) will be de-duplicated, such that the last instance
+       of that Step in the list is preserved
+    2. Multiple Wait steps in a row will be removed from the beginning/end of the step list
+    """
+    # (1) Iterate through items and flatten into a list of Step objects
     steps: List[Step] = []
     for item in self.items:
       coll = [step]
       if isinstance(item, Group):
         coll = item.steps()
       for step in coll:
-        if not step.key or step.key not in seen:
-          seen[step.key or ''] = True
           steps.append(step)
-    return steps
+
+    # (2) Remove duplicate steps (via key property) and only preserve
+    # the last instance of that step in the list.
+    steps.reverse()
+    uniq: List[Step] = []
+    seen: dict = {}
+    for step in steps:
+      if not step.key or step.key not in seen:
+        uniq.append(step)
+        if step.key:
+          seen[step.key] = True
+    uniq.reverse()
+
+  def targets(self) -> List[Target]:
+    """
+    Return unique set of targets for the current Pipeline
+    """
+    seen = set()
+    for step in self.steps():
+      for target in step.targets:
+        seen.add(target)
+    return list(seen)
