@@ -67,14 +67,12 @@ class Command(Step):
     # Setup inheritable properties using class-based defaults using MRO
     # to aggregate hash and list types, or determine the first valid value
     # for scalar types like timeout_in_minutes
-    classes = [cls for cls in self.__class__.__mro__ if cls is not object]
-    classes.reverse()
     env = {**self.env}
     agents = {**self.agents}
     artifact_paths = set(self.artifact_paths)
     plugins = set(self.plugins)
     timeout_in_minutes = self.timeout_in_minutes
-    for cls in classes:
+    for cls in self.classes():
       env.update(getattr(cls, 'env', {})
       agents.update(getattr(cls, 'agents', {}))
       artifact_paths |= set(getattr(cls, 'artifact_paths', []))
@@ -119,11 +117,3 @@ class Command(Step):
 
     return d
 
-  def __rshift__(self, deps: Union[Step, Iterable[Step]]) -> 'Command':
-    """
-    Declare a triggering relationship from the command step to another step. When this operator
-    is executed, the given dependent steps will include this step's key in their depends_on key list
-    """
-    for dep in as_tuple(deps):
-      dep.depends_on.push(self.key)
-    return self

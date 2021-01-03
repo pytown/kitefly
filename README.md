@@ -12,26 +12,36 @@ pip install kitefly
 
 
 Create a pipeline file in your repository (e.g. `my_pipeline.py`). Here's a simple example:
-```
+```py
 # File: my_pipeline.py
 from kitefly import Command, Group, Target, Wait, run
 
-lib = Target('src/lib', 'src/lib-v2')
-app = Target('src/app')
+lib = Target(sources=('src/lib', 'src/lib-v2'))
+app = Target(sources='src/app', priority=10)
 app >> lib
 py_files = Target('**/*.py')
 
 test_results = Step('Collect test results', 'script/test-collector.sh')
 coverage = Step('Collect code coverage', 'script/coverage-collector.sh')
 
+# You can inherit from Command to apply env + agents targeting to
+# all steps with that class. Those class properties will be merged in reverse-MRO
+class Linux(Command):
+  env = {
+    "PYTHON_PATH": "/usr/bin/python3"
+  }
+  agents = {
+    "os": "linux"
+  }
+
 run(Pipeline(
   Group(
-    Command(
+    Linux(
       'Run app tests',
       'script/test-app.sh',
       targets=[target_app],
     ) >> coverage,
-    Command(
+    Linux(
       'Run library tests',
       'script/test-lib.sh',
       targets=[target_lib],
@@ -40,7 +50,7 @@ run(Pipeline(
       'Run e2e tests',
       'script/e2e.sh',
       targets=[target_app, target_lib]
-     )
+    )
   ) >> test_results,
   Wait(),
   Command(
@@ -48,7 +58,7 @@ run(Pipeline(
     './script/pylint.sh',
     targets=py_files,
     env={PYENV: "project-3.6.3"}
-  ) >> ,
+  ) >> test_results,
   Command('Publish test artifacts ', './script/publish-test-results.sh')
 ))
 ```
@@ -82,7 +92,7 @@ For each of the declared steps, a "key" field will automatically be generated ba
 
 For non-Pull-Request builds where there is no declared Buildkite base branch variable, the full pipeline will be executed by default. This behavior can be controlled by various options passed to the `kitefly` executable.
 
-A full list of `kitefly` execution options can be found by executing `kitefly --help`, and can also be found in [API.md](API.md) along with the full API listing of `kitefly` modules.
+A full listing of models and documentation can be seen at [API.md](API.md).
 
 
 ## License

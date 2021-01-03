@@ -21,6 +21,25 @@ tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)"
 tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six"]
 
 [[package]]
+name = "backrefs"
+version = "4.5"
+description = "A wrapper around re and regex that adds additional back references."
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[package.extras]
+extras = ["regex"]
+
+[[package]]
+name = "bracex"
+version = "2.0.1"
+description = "Bash style brace expander."
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[[package]]
 name = "colorama"
 version = "0.4.4"
 description = "Cross-platform colored terminal text."
@@ -140,6 +159,18 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "wcmatch"
+version = "7.2"
+description = "Wildcard/glob file name matcher."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+backrefs = ">=4.1"
+bracex = ">=2.0"
+
+[[package]]
 name = "zipp"
 version = "3.4.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
@@ -153,8 +184,8 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.5"
-content-hash = "e4d0bfac53e2c198acf85d203d23ea77a50e9d838161a4dc44a0b9888513454d"
+python-versions = "^3.6"
+content-hash = "c27bd4e60becfb1c4a50b5b62bc39032fedd8598dc591d3f48e88a05d6c21d06"
 
 [metadata.files]
 atomicwrites = [
@@ -164,6 +195,13 @@ atomicwrites = [
 attrs = [
     {file = "attrs-20.3.0-py2.py3-none-any.whl", hash = "sha256:31b2eced602aa8423c2aea9c76a724617ed67cf9513173fd3a4f03e3a929c7e6"},
     {file = "attrs-20.3.0.tar.gz", hash = "sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700"},
+]
+backrefs = [
+    {file = "backrefs-4.5.tar.gz", hash = "sha256:a1bbb68f103cf514bcc481b86c40965478d779422fed7cabc5aade318d506df8"},
+]
+bracex = [
+    {file = "bracex-2.0.1-py3-none-any.whl", hash = "sha256:867fdf671c5546d1a296bc21e29c0015d379d011c0adc2e88555a2714bfecf86"},
+    {file = "bracex-2.0.1.tar.gz", hash = "sha256:1a279532492991ec66051d89367c705c6afaa8d838a2984dd2e12d78c2b86125"},
 ]
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
@@ -220,6 +258,10 @@ typing-extensions = [
     {file = "typing_extensions-3.7.4.3-py2-none-any.whl", hash = "sha256:dafc7639cde7f1b6e1acc0f457842a83e722ccca8eef5270af2d74792619a89f"},
     {file = "typing_extensions-3.7.4.3-py3-none-any.whl", hash = "sha256:7cb407020f00f7bfc3cb3e7881628838e69d8f3fcab2f64742a5e76b2f841918"},
     {file = "typing_extensions-3.7.4.3.tar.gz", hash = "sha256:99d4073b617d30288f569d3f13d2bd7548c3a7e4c8de87db09a9d29bb3a4a60c"},
+]
+wcmatch = [
+    {file = "wcmatch-7.2-py3-none-any.whl", hash = "sha256:a3c39cd08dafa3708e668611de3ade9197b79f8a4f9802e4ed15ebf539c574e3"},
+    {file = "wcmatch-7.2.tar.gz", hash = "sha256:d65b8fe04887130e487b93184ec01ff2b3b226e03a98855b8319f894e4c8adc6"},
 ]
 zipp = [
     {file = "zipp-3.4.0-py3-none-any.whl", hash = "sha256:102c24ef8f171fd729d46599845e95c7ab894a4cf45f5de11a44cc7444fb1108"},
