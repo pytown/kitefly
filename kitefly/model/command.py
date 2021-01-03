@@ -9,7 +9,10 @@ from ..util import generate_key, as_tuple
 
 class Command(Step):
   """
-  Entity representing a command step in a Buildkite pipeline
+  A Step which runs an executable in the repository and marks the step as
+  pass/fail based on exit code.
+
+  See: https://buildkite.com/docs/pipelines/command-step
   """
 
   def __init__(

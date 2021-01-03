@@ -3,6 +3,8 @@ from .step import Step
 class Wait(Step):
   """
   Entity representing a "wait" step in a Buildkite pipeline
+
+  See: https://buildkite.com/docs/pipelines/wait-step
   """
   def __init__(
     self,

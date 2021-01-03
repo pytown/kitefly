@@ -3,6 +3,9 @@ from typing import Mapping
 from .step import Step
 
 class BuildAttributes:
+  """
+  Attributes used when triggering a build.
+  """
   def __init__(
     self,
     message: str = "",
@@ -33,7 +36,11 @@ class BuildAttributes:
 
 
 class Trigger(Step):
+  """
+  A Step which triggers a build on another pipeline.
 
+  See: https://buildkite.com/docs/pipelines/trigger-step
+  """
   def __init__(
     self,
     pipeline: str,

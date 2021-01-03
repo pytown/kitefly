@@ -26,6 +26,11 @@ class Group:
       item >> dep
     return self
 
+  def __lshift__(self, dep: Step) -> 'Group':
+    for item in self.items:
+      item << dep
+    return self
+
   def steps(self) -> List[Step]:
     steps: List[Step] = []
     for item in self.items:

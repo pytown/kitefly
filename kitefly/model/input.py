@@ -49,6 +49,9 @@ class SelectField(Field):
     return d
 
 class InputField(Field):
+  """
+  A Step which waits for user input in order to complete.
+  """
   def __init__(
     self,
     key: str,
@@ -73,6 +76,8 @@ class Input(Step):
   """
   A step that prompts the user for information that can be used in
   dependent builds
+
+  See: https://buildkite.com/docs/pipelines/input-step
   """
   def __init__(
     self,
@@ -102,7 +107,9 @@ class Input(Step):
 
 class Block(Input):
   """
-  An Input step that implicitly blocks any steps following it, functioning much like a Wait step
+  An Input Step that implicitly blocks any steps following it, functioning as a Wait and Input Step combined.
+
+  See: https://buildkite.com/docs/pipelines/block-step
   """
   def asdict(self) -> dict:
     d = super().asdict()

@@ -16,8 +16,8 @@ Create a pipeline file in your repository (e.g. `my_pipeline.py`). Here's a simp
 # File: my_pipeline.py
 from kitefly import Command, Group, Target, Wait, run
 
-lib = Target(sources=('src/lib', 'src/lib-v2'))
-app = Target(sources='src/app', priority=10)
+lib = Target.src('src/lib', 'src/lib-v2')
+app = Target.src('src/app').prio(10)
 app >> lib
 py_files = Target('**/*.py')
 
@@ -51,14 +51,14 @@ run(Pipeline(
       'script/e2e.sh',
       targets=[target_app, target_lib]
     )
-  ) >> test_results,
+  ) << test_results
   Wait(),
   Command(
     'Run pylint',
     './script/pylint.sh',
     targets=py_files,
     env={PYENV: "project-3.6.3"}
-  ) >> test_results,
+  ) << test_results,
   Command('Publish test artifacts ', './script/publish-test-results.sh')
 ))
 ```

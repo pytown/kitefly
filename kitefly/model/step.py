@@ -59,12 +59,23 @@ class Step:
             d.update(self.properties)
         return d
 
-    def __rshift__(self, deps: Union[Step, Iterable[Step]]) -> 'Command':
+    def __lshift__(self, deps: Union[Step, Iterable[Step]]) -> 'Command':
         """
-        Declare a dependency relationship from the command step to another step that will become its
-        dependent, which will add this step's key in their depends_on key list
+        Declare a dependency relationship from the command step (A) with another step (B)
+        that will become its dependent. The key of step A (keyA) will be added to B's
+        depends_on list
         """
         for dep in as_tuple(deps):
             dep.depends_on.push(self.key)
             self.dependents.append(dep)
-            return self
+        return self
+
+    def __rshift__(self, dep_on: Union[Step, Iterable[Step]]) -> 'Command':
+        """
+        Declare a dependency relationship from this step (A) on another step (B)
+        Step B's key will be added to this step's depends_on list.
+        """
+        for parent in as_tuple(dep_on):
+            self.depends_on.push(parent.key)
+            parent.dependents.append(self)
+        return self

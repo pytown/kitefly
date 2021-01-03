@@ -1,11 +1,9 @@
 from re import Pattern
-from typing import List, Tuple, Union
+from typing import List, Tuple, Type, Union
 import os
 
 from wcmatch import glob
 
-
-def partion_all()
 
 class TargetPattern:
   GLOB_ALL = object()
@@ -43,12 +41,23 @@ class Target:
   def __init__(self, sources: Union[str, Iterable[str]], priority: int = 0):
     self.patterns = [TargetPattern(p) for p in as_tuple(sources)]
     self.depends_on: List[Target] = []
+    self.priority = priority or getattr(self, 'class_priority', 0)
+
+  @classmethod
+  def src(cls, *sources: Tuple[str]) -> 'Target':
+    return Target(sources=sources)
+
+  def prio(self, priority: int) -> 'Target':
+    self.priority = priority
+    return self
 
   def __rshift__(self, dep: 'Target') -> 'Target':
     self.depends_on.append(dep)
-    return self
+    return dep
 
   def __lt__(self, comp: 'Target') -> bool:
     if self.priority != comp.priority:
       return self.priority < comp.priority
     return self.patterns < comp.patterns
+
+AppTarget = Target.src("src/app", "src/app2").prio(10)
