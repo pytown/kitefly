@@ -13,6 +13,7 @@ class Step:
         branches: str = "",
         allow_dependency_failure: bool = False,
         targets: Optional[List[Target]] = None,
+        tags: Optional[List[str]] = None,
         **kwargs
     ):
         self.key = None
@@ -22,11 +23,20 @@ class Step:
         self.branches = branches
         self.allow_dependency_failure = allow_dependency_failure
         self.properties: dict = kwargs
-        agg_targets: Set[Target] = set(targets or [])
-        for cls in self.classes():
-            agg_targets |= set(getattr(cls, 'targets', []))
-        self.targets: List[Target] = list(agg_targets)
+        self._tags = tags or []
+        self._targets = targets or []
 
+    def targets(self) -> List[Target]:
+        targets = list(self._targets)
+        for cls in self.classes():
+            targets += getattr(cls, 'targets', [])
+        return list(set(targets))
+
+    def tags(self) -> List[str]:
+        tags = list(self._tags)
+        for cls in self.classes():
+            tags += getattr(cls, 'tags', [])
+        return list(set(tags))
 
     def classes(self) -> List[type]:
         """
@@ -79,3 +89,6 @@ class Step:
             self.depends_on.push(parent.key)
             parent.dependents.append(self)
         return self
+
+    def __eq__(self, step: Step) -> 'bool':
+        return self.asdict() == step.asdict()

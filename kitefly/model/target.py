@@ -27,6 +27,11 @@ class TargetPattern:
   def __lt__(self, comp: 'TargetPattern') -> bool:
     return len(self) < len(comp)
 
+  def __str__(self) -> str:
+    if self.is_regex:
+      return f"r/{self.pattern.pattern}/"
+    return self.pattern
+
 class Target:
   """
   A grouping of file-matching patterns used to group sources for a single Build
@@ -38,13 +43,14 @@ class Target:
   A Target can also depend on another Target, meaning that if A depends on B, and
   B is included in the list of matched Targets, then A will also be included.
   """
-  def __init__(self, sources: Union[str, Iterable[str]], priority: int = 0):
+  def __init__(self, sources: Union[str, Pattern, Iterable[Union[str, Pattern]]], priority: int = 0, name: str = ''):
     self.patterns = [TargetPattern(p) for p in as_tuple(sources)]
     self.depends_on: List[Target] = []
+    self.name = name
     self.priority = priority or getattr(self, 'class_priority', 0)
 
   @classmethod
-  def src(cls, *sources: Tuple[str]) -> 'Target':
+  def src(cls, *sources: Tuple[Union[str, Pattern]]) -> 'Target':
     return Target(sources=sources)
 
   def prio(self, priority: int) -> 'Target':
@@ -60,4 +66,7 @@ class Target:
       return self.priority < comp.priority
     return self.patterns < comp.patterns
 
-AppTarget = Target.src("src/app", "src/app2").prio(10)
+  def __str__(self) -> str:
+    plist = ",".join([str(p) for p in self.patterns])
+    return f"Target(priority={self.priority},sources={plist})
+

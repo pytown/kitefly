@@ -1,8 +1,5 @@
 from typing import Iterable, List, Tuple, Union
 
-from .agents import Agents
-from .env import Env
-
 from .step import Step
 
 class Group:

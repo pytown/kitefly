@@ -1,8 +1,37 @@
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Step, Tuple, Union
 
 from .group import Group
 from .step import Step
 from .target import Target
+from .wait import Wait
+
+class PipelineFilter:
+  def __init__(
+      targets: Optional[Iterable[Target]]=None,
+      only_tags: Iterable[str]=()
+      exclude_tags: Optional[Iterable[str]]=None
+  ):
+    self.targets = targets
+    self.only_tags = only_tags
+    self.exclude_tags = exclude_tags
+
+  def include(items: List[Union[Step, Group]], item: Union[Step, Group]):
+    if isinstance(item, Step):
+      if self.targets is not None and not (set(step.targets()) & set(self.targets)):
+        return
+      if self.only_tags and not (set(step.tags()) & set(self.only_tags)):
+        return
+      if self.exclude_tags and (set(step.tags()) & set(self.exclude_tags)):
+        return
+      items.append(item)
+    elif isinstance(item, Group):
+      filtered_items = []
+      for group_item in item.items:
+        self.include(filtered_items, group_item)
+      if not filtered_items:
+        return
+      items.append(Group(*filtered_items))
+
 
 class Pipeline:
   """
@@ -20,15 +49,19 @@ class Pipeline:
 
   def filter(
       self,
-      targets: Iterable[Target]=(),
-      tags: Iterable[str]=(),
+      targets: Optional[Iterable[Target]]=None,
+      only_tags: Iterable[str]=(),
       exclude_tags: Iterable[str]=()
     ) -> 'Pipeline':
     """
     Filter the pipeline with the optional provided values and return a flattened
     list of steps with duplicate steps (via key) removed.
     """
-    return Pipeline(*self.items)
+    filtered = []
+    pf = PipelineFilter(targets=targets, only_tags=tags, exclude_tags=exclude_tags)
+    for item in self.items:
+      pf.include(filtered, item)
+    return Pipeline(*filtered)
 
   def steps(self) -> List[Step]:
     """
@@ -37,7 +70,8 @@ class Pipeline:
        of that Step in the list is preserved
     2. Multiple Wait steps in a row will be removed from the beginning/end of the step list
     """
-    # (1) Iterate through items and flatten into a list of Step objects
+    # (1) Flatten
+    # Iterate through items and flatten into a list of Step objects
     steps: List[Step] = []
     for item in self.items:
       coll = [step]
@@ -46,8 +80,9 @@ class Pipeline:
       for step in coll:
           steps.append(step)
 
-    # (2) Iterate through all steps and ensure all dependents are added to the list of steps,
-    #     even if they weren't in the list of steps added directly to the pipeline
+    # (2) Dependent Inclusion
+    # Iterate through all steps and ensure all dependents are added to the list of steps,
+    # even if they weren't in the list of steps added directly to the pipeline
     seen = set()
     queue = []
     while queue or not seen:
@@ -62,24 +97,41 @@ class Pipeline:
               seen.add(dep)
               queue.append(dep)
 
-    # (3) Remove any depends_on keys for filtered-out steps
+    # (3) Clean depends_on
+    # Remove any depends_on keys for filtered-out steps
     keys = set([step.key for step in steps if isinstance(step, Command)])
     for step in steps:
       step.depends_on = [key for key in step.depends_on if key in keys]
 
-    # (4) Remove duplicate steps (via key property) and only preserve
-    #     the last instance of that step in the list.
+    # (4) De-duplicate
+    # Remove duplicate steps and only preserve the final instance of that
+    # step in the list.
     steps.reverse()
     uniq: List[Step] = []
-    seen = set()
+    seen: Set[Step] = set()
     for step in steps:
-      if not step.key or step.key not in seen:
+      if isinstance(step, Wait) or step not in seen:
         uniq.append(step)
-        if step.key:
-          seen.add(step.key)
+        seen.add(step)
     uniq.reverse()
-    return uniq
+    steps = uniq
 
+    # (5) Remove unnecessary Waits
+    # Remove runs of identical wait steps, and strip waits from the beginning/end
+    # of the pipeline
+    last_step = None
+    cleaned: List[Step] = []
+    for step in steps:
+      is_valid = True
+      if isinstance(step, Wait):
+        is_valid = last_step and last_step != step
+      last_step = step
+      if is_valid:
+        cleaned.append(step)
+    if isinstance(steps[-1], Wait):
+      steps.pop()
+
+    return steps
 
   def targets(self) -> List[Target]:
     """
@@ -87,7 +139,7 @@ class Pipeline:
     """
     seen = set()
     for step in self.steps():
-      for target in step.targets:
+      for target in step.targets():
         seen.add(target)
     return list(seen)
 
