@@ -1,17 +1,18 @@
-from re import Pattern
-from typing import List, Tuple, Type, Union
-import os
+import re
+from typing import List, Tuple, Iterable, Union
+from ..util import as_iterable
 
 from wcmatch import glob
 
+retype = type(re.compile(''))
 
 class TargetPattern:
   GLOB_ALL = object()
 
-  def __init__(self, pattern: Union[str, Pattern]):
+  def __init__(self, pattern: Union[str, retype]):
     self.pattern = pattern
     self.is_regex = False
-    if isinstance(pattern, Pattern):
+    if isinstance(pattern, re.Pattern):
       self.is_regex = True
 
   def matches(self, filepath: str) -> bool:
@@ -34,7 +35,7 @@ class TargetPattern:
 
 class Target:
   """
-  A grouping of file-matching patterns used to group sources for a single Build
+  A collection of file-matching patterns used to group sources for a single Build
   Target, which can be associated with one or more Step entities in the Pipeline.
   When base-branch comparison is used, each changed file in the list will be matched
   with the Target with the highest priority, or pattern length if the priorities are equal.
@@ -43,14 +44,14 @@ class Target:
   A Target can also depend on another Target, meaning that if A depends on B, and
   B is included in the list of matched Targets, then A will also be included.
   """
-  def __init__(self, sources: Union[str, Pattern, Iterable[Union[str, Pattern]]], priority: int = 0, name: str = ''):
-    self.patterns = [TargetPattern(p) for p in as_tuple(sources)]
+  def __init__(self, sources: Union[str, retype, Iterable[Union[str, retype]]], priority: int = 0, name: str = ''):
+    self.patterns = [TargetPattern(p) for p in as_iterable(sources)]
     self.depends_on: List[Target] = []
     self.name = name
     self.priority = priority or getattr(self, 'class_priority', 0)
 
   @classmethod
-  def src(cls, *sources: Tuple[Union[str, Pattern]]) -> 'Target':
+  def src(cls, *sources: Tuple[Union[str, retype]]) -> 'Target':
     return Target(sources=sources)
 
   def prio(self, priority: int) -> 'Target':
@@ -68,5 +69,4 @@ class Target:
 
   def __str__(self) -> str:
     plist = ",".join([str(p) for p in self.patterns])
-    return f"Target(priority={self.priority},sources={plist})
-
+    return f"Target(priority={self.priority},sources={plist})"
