@@ -1,18 +1,18 @@
 import os
-import sys
 from yaml import dump as yaml_dump
+from typing import List, Optional
 
-from .model import Pipeline
+from .model import Pipeline, Target
 from .targets import find_matching_targets
 
 VERSION = "0.1.0"
 
-def run(
+def generate(
   pipeline: Pipeline,
   filter_by_base_branch: bool = False,
   base_branch: str = "",
-  only_tags: Optional[List[str]] = None,
-):
+  only_tags: Optional[List[str]] = None
+) -> str:
   """
   Execute the given Pipeline, filtering by base-branch comparison if specified,
   and print the resulting Buildkite YAML output
@@ -32,7 +32,6 @@ def run(
   """
   matched_targets: Optional[List[Target]] = None
   if filter_by_base_branch:
-    targets = pipeline.targets()
     selected_base_branch: str = base_branch or os.getenv('BUILDKITE_BASE_BRANCH')
     if not selected_base_branch:
       raise ValueError(
@@ -48,6 +47,5 @@ def run(
   filtered = pipeline.filter(
     targets=matched_targets,
     only_tags=only_tags,
-    exclude_tags=exclude_tags
   )
-  print(yaml_dump(filtered.asdict()))
+  return yaml_dump(filtered.asdict())

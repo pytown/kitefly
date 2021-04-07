@@ -1,5 +1,5 @@
 import re
-from typing import Tuple, Union, TypeVar
+from typing import Iterable, Union, TypeVar
 
 RE_NONID = re.compile(r'[^a-zA-Z0-9_]')
 RE_MULTI_US = re.compile(r'__+')
@@ -34,7 +34,7 @@ def is_iterable(v: any) -> bool:
     return True
 
 
-def as_tuple(v: Union[Tuple[T], T]) -> Tuple[T]:
+def as_iterable(v: Union[Iterable[T], T]) -> Iterable[T]:
     """
     Convert passed object to a tuple.
     """

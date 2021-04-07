@@ -20,4 +20,3 @@ class Wait(Step):
     if self.continue_on_failure:
       d["continue_on_failure"] = True
     return d
-
