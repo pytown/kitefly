@@ -1,0 +1,37 @@
+steps:
+- agents:
+    cores: 8
+    os: linux
+  artifact_paths:
+  - build-artifacts/**
+  command: script/build.sh
+  key: run_build__kf__2
+  label: Run Build
+- agents:
+    os: linux
+  artifact_paths:
+  - build-artifacts/**
+  command: script/test.sh
+  key: run_tests__kf__3
+  label: Run Tests
+  parallelism: 2
+- wait: '~'
+- block: Deployment Gate
+  fields:
+  - key: confirmation
+    required: true
+    text: Confirmation
+  prompt: Enter 'deploy'
+- artifact_paths:
+  - build-artifacts/**
+  command: scripts/deploy.sh
+  concurrency: 1
+  concurrency_group: deployment
+  key: deploy
+  label: Deploy
+- command: script/collect-results.sh
+  depends_on:
+  - run_build__kf__2
+  - run_tests__kf__3
+  key: collect_results__kf__2
+  label: Collect Results

@@ -1,0 +1,13 @@
+steps:
+- command: script/build.sh
+  key: run_build__kf__1
+  label: Run Build
+- command: script/test.sh
+  key: run_tests__kf__2
+  label: Run Tests
+- command: script/collect-results.sh
+  depends_on:
+  - run_build__kf__1
+  - run_tests__kf__2
+  key: collect_results
+  label: Collect Results

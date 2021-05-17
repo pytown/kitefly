@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 class AutomaticRetry:
   """
   Configuration entry for an automatic retry on a Command Step, of which there may be
@@ -21,7 +23,7 @@ class ManualRetry:
     self.reason = reason
 
   def asdict(self) -> dict:
-    d = {
+    d: Dict[str, Any] = {
       "allowed": self.allowed,
     }
     if self.permit_on_passed:
