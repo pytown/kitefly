@@ -11,9 +11,10 @@ pip install kitefly
 ## Usage
 
 
-Create a pipeline file in your repository (e.g. `my_pipeline.py`). Here's a simple example:
+Create a pipeline file in your repository (e.g. `generate_pipeline.py`). Here's a simple example:
 ```py
-# File: my_pipeline.py
+#!/usr/bin/env python
+# File: generate_pipeline.py
 from kitefly import Command, GitFilter, Group, Pipeline, Target, Wait
 
 #
@@ -89,13 +90,15 @@ if base_branch := os.getenv('BUILDKITE_BASE_BRANCH'):
 print(filtered.asyaml())
 ```
 
-The pipeline can now be generated as follows within Buildkite:
-
+The pipeline can now be generated as the main executor step in Buildkite:
 ```
-python my_pipeline.py | buildkite-agent upload
+pip install kitefly
+generate_pipeline.py | buildkite-agent upload
 ```
 
-By default, `kitefly` will use the base branch file comparison based on Buildkite ENV variables to filter the list of steps to only include those matching affected "Targets", i.e. those whose file lists from the git branch comparison match the file specs of the given targets.
+## About Filtering
+
+Kitefly provides a model to associate build steps with source "targets", enabling filtering to run fewer builds. This is particularly useful for monorepos.
 
 For example, if the `git ls-files <buildkite-branch>..<base-branch>` is:
 ```
@@ -112,9 +115,9 @@ src/infra/tool.py
 Then only the `py_files` target will match, and so only the last 2 steps in the provided pipeline will be included in the output:
 
 1. "Run pylint" - since the `py_files` target matches
-2. "Publish test artifacts" - since this step isn't bound to any targets
+2. "Collect coverage" - since this step isn't bound to any targets
 
-For each of the declared steps, a "key" field will automatically be generated based on the name of the step. Steps that declare a trigger on another step will have the relevant `depends_on` field set automatically on the triggered step. For example, the `test_collector` step will be rendered after the "Run e2e" tests step (since that's the last one that triggers it) and before the Wait() step, and that `test_collector` step will have 3 values on its `depends_on` field for the 3 test steps that trigger it. If any of those dependencies is not rendered in the pipeline, it will be automatically removed from the dependency list.
+For each of the declared steps, a "key" field will automatically be generated based on the name of the step. Steps that declare a trigger on another step will have the relevant `depends_on` field set automatically on the triggered step. For example, the `coverage` step will be rendered after the "Run e2e" tests step (since that's the last one that triggers it) and before the Wait() step, and that `coverage` step will have 3 values on its `depends_on` field for the 3 test steps that trigger it. If any of those dependencies is not rendered in the pipeline, it will be automatically removed from the dependency list.
 
 ## License
 
