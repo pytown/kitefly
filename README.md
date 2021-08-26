@@ -14,15 +14,23 @@ pip install kitefly
 Create a pipeline file in your repository (e.g. `my_pipeline.py`). Here's a simple example:
 ```py
 # File: my_pipeline.py
-from kitefly import Command, Group, Target, Wait, generate
+from kitefly import Command, GitFilter, Group, Pipeline, Target, Wait
 
+#
+# 1. Define your Source Targets (Optional)
+#
 lib = Target.src('src/lib', 'src/lib-v2')
 app = Target.src('src/app').prio(10)
 app >> lib
 py_files = Target('**/*.py')
 
-test_results = Step('Collect test results', 'script/test-collector.sh')
 coverage = Step('Collect code coverage', 'script/coverage-collector.sh')
+
+
+
+#
+# 2. Define the Pipeline
+#
 
 # You can inherit from Command to apply env vars and agents targeting to
 # all steps with that class. Those class properties will be merged in reverse-MRO
@@ -39,7 +47,8 @@ class LinuxHighCpu(Linux):
     "instance": "large"
   }
 
-print(generate(Pipeline(
+
+pipeline = Pipeline(
   Group(
     LinuxHighCpu(
       'Run app tests',
@@ -56,16 +65,28 @@ print(generate(Pipeline(
       'script/e2e.sh',
       targets=[target_app, target_lib]
     )
-  ) << test_results
+  ) << coverage
   Wait(),
   Command(
     'Run pylint',
     './script/pylint.sh',
     targets=py_files,
     env={PYENV: "project-3.6.3"}
-  ) << test_results,
+  ) << coverage,
   Command('Publish test artifacts ', './script/publish-test-results.sh')
-)))
+)
+
+#
+# 3. Filter your pipeline against targets matching changes from base:
+#
+filtered = pipeline
+if base_branch := os.getenv('BUILDKITE_BASE_BRANCH'):
+  filtered = pipeline.filter(GitFilter(base_branch=base_branch))
+
+#
+# 4. Print out the Pipeline YAML
+#
+print(filtered.asyaml())
 ```
 
 The pipeline can now be generated as follows within Buildkite:
