@@ -24,6 +24,6 @@ setup(
     packages=['kitefly'],
     package_dir={"": "."},
     package_data={},
-    install_requires=['pyyaml==5.*,>=5.3.1', 'wcmatch==8.*,>=8.1.2'],
-    extras_require={"dev": ["pytest==4.*,>=4.6.0"]},
+    install_requires=['pyyaml', 'wcmatch'],
+    extras_require={"dev": ["pytest==6.*,>=6.2.1", "pytest-coverage","mypy>=0.910"]},
 )

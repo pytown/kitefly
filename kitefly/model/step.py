@@ -1,4 +1,4 @@
-from typing import Optional, List, Iterable, Union
+from typing import Any, Dict, List, Iterable, Union
 
 from .target import Target
 from ..util import as_iterable
@@ -15,13 +15,13 @@ class Step:
         when: str = "",
         branches: str = "",
         allow_dependency_failure: bool = False,
-        targets: Optional[List[Target]] = None,
-        tags: Optional[List[str]] = None,
+        tags: List[str] = None,
+        targets: List[Target] = None,
         **kwargs
     ):
         self.__class__._instance_count += 1
         self.instance_serial = self.__class__._instance_count
-        self.key = None
+        self.key = ""
         self.when = when
         self.depends_on: List[str] = []
         self.dependents: List[Step] = []
@@ -31,17 +31,6 @@ class Step:
         self._tags = tags or []
         self._targets = targets or []
 
-    def targets(self) -> List[Target]:
-        targets = list(self._targets)
-        for cls in self.classes():
-            targets += getattr(cls, 'targets', [])
-        return list(set(targets))
-
-    def tags(self) -> List[str]:
-        tags = list(self._tags)
-        for cls in self.classes():
-            tags += getattr(cls, 'tags', [])
-        return list(set(tags))
 
     def classes(self) -> List[type]:
         """
@@ -49,19 +38,39 @@ class Step:
         properties based on lineage.
 
         Example:
-        cmd: Command
+        cmd: Cokmand
         cmd.classes() -> [Step, Command]
         """
         classes = [cls for cls in self.__class__.__mro__ if cls is not object]
         classes.reverse()
         return classes
 
+    def combined_parent_list(self, property: str) -> list:
+        values = list(as_iterable(self.properties.get(property) or []))
+        for cls in self.classes():
+            values += getattr(cls, property, [])
+        return values
+
+    @property
+    def targets(self) -> List[Target]:
+        """
+        Return distinct list of Targets associated with this step.
+        """
+        return list(set(self.combined_parent_list("targets")))
+
+    @property
+    def tags(self) -> List[str]:
+        """
+        Return distinct list of tags associated with this step.
+        """
+        return list(set(self.combined_parent_list("tags")))
+
     def asdict(self) -> dict:
         """
         Every Step class has an asdict() method to generate a plain dictionary mapping that can
         be used to generate serialized text formats, primarily YAML for Buildkite
         """
-        d = {}
+        d: Dict[str, Any] = {}
         if self.when:
             d['if'] = self.when
         if self.depends_on:
@@ -81,7 +90,9 @@ class Step:
         depends_on list
         """
         for dep in as_iterable(deps):
-            dep.depends_on.push(self.key)
+            if self.key is None:
+                raise ValueError("Cannot add reverse dependency on self: key is not defined")
+            dep.depends_on.append(self.key)
             self.dependents.append(dep)
         return self
 
@@ -91,12 +102,16 @@ class Step:
         Step B's key will be added to this step's depends_on list.
         """
         for parent in as_iterable(dep_on):
-            self.depends_on.push(parent.key)
+            if parent.key is None:
+                raise ValueError("Cannot depend on step without a key")
+            self.depends_on.append(parent.key)
             parent.dependents.append(self)
         return self
 
-    def __eq__(self, step: 'Step') -> 'bool':
-        return self.asdict() == step.asdict()
+    def __eq__(self, step: Any) -> bool:
+        if isinstance(step, Step):
+            return self.asdict() == step.asdict()
+        return False
 
     def __hash__(self) -> int:
         return self.instance_serial

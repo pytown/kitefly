@@ -1,9 +1,11 @@
+import os
 import re
-from typing import Iterable, Union, TypeVar
+from typing import Any, Iterable, Pattern, TypeVar, Union, cast
 
 RE_NONID = re.compile(r'[^a-zA-Z0-9_]')
 RE_MULTI_US = re.compile(r'__+')
 T = TypeVar('T')
+ST = TypeVar('ST')
 
 KEY_COUNT = {}
 
@@ -23,7 +25,7 @@ def generate_key(name: str) -> str:
     return f"{norm}{suffix}"
 
 
-def is_iterable(v: any) -> bool:
+def is_iterable(v: Any) -> bool:
     """
     Return True if the provided object is iterable.
     """
@@ -34,12 +36,20 @@ def is_iterable(v: any) -> bool:
     return True
 
 
-def as_iterable(v: Union[Iterable[T], T]) -> Iterable[T]:
+def as_iterable(v: Union[T, Iterable[T]]) -> Iterable[T]:
     """
     Convert passed object to a tuple.
     """
-    if type(v) == tuple:
-        return tuple(v)
-    elif is_iterable(v):
-        return tuple(v)
-    return (v,)
+    if is_iterable(v):
+        return cast(Iterable, v)
+    else:
+        return cast(T, v),
+
+def glob(pattern: str) -> Pattern:
+    """
+    Return a compiled regular expression that will match full filepaths
+    using the provided glob pattern.
+    """
+    escaped = re.escape(pattern)
+    pattern = escaped.replace("\\*\\*", ".*").replace("\\*", f"[^{os.sep}]+")
+    return re.compile(pattern)

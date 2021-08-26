@@ -1,4 +1,4 @@
-from typing import Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from .step import Step
 
@@ -21,7 +21,7 @@ class BuildAttributes:
     self.env = env or {}
 
   def asdict(self) -> dict:
-    d = {}
+    d: Dict[str, Any] = {}
     if self.message:
       d["message"] = self.message
     if self.commit:
@@ -46,11 +46,14 @@ class Trigger(Step):
     pipeline: str,
     build: Optional[BuildAttributes] = None,
     label: str = "",
-    async: bool = False,
+    asynchronous: bool = False,
     **kwargs
   ):
     super().__init__(**kwargs)
     self.pipeline = pipeline
+    self.build = build
+    self.label = label
+    self.asynchronous = asynchronous
 
   def asdict(self) -> dict:
     d = super().asdict()
@@ -59,6 +62,6 @@ class Trigger(Step):
       d["build"] = self.build.asdict()
     if self.label:
       d["label"] = self.label
-    if self.async:
+    if self.asynchronous:
       d["async"] = True
     return d

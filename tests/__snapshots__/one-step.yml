@@ -1,4 +1,4 @@
 steps:
 - command: script/test.sh
-  key: null
+  key: run_tests
   label: Run Tests

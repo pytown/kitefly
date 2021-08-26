@@ -1,10 +1,10 @@
-from typing import Iterable, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from .plugin import Plugin
 from .step import Step
 from .retry import AutomaticRetry, ManualRetry
 
-from ..util import generate_key, as_iterable
+from ..util import generate_key
 
 class Command(Step):
   """
@@ -32,6 +32,7 @@ class Command(Step):
       plugins: Optional[List[Plugin]] = None,
       **kwargs
     ):
+    super().__init__(**kwargs)
     self.key = generate_key(label)
     self.label = label
     self.command = command
@@ -40,7 +41,7 @@ class Command(Step):
     self.automatic_retries: List[AutomaticRetry] = []
     self.soft_fail = soft_fail
     if automatic_retries:
-      if type(automatic_retries) == int:
+      if isinstance(automatic_retries, int):
         self.automatic_retries = [AutomaticRetry(automatic_retries)]
       else:
         self.automatic_retries = list(automatic_retries)
@@ -48,16 +49,15 @@ class Command(Step):
     self.concurrency = concurrency
     self.concurrency_group = concurrency_group
     self.plugins = plugins
-    self.artifact_paths = []
+    self.artifact_paths: List[str] = []
     if artifact_paths:
-      if type(artifact_paths) is str:
+      if isinstance(artifact_paths, str):
         self.artifact_paths = artifact_paths.split(';')
       else:
         self.artifact_paths = artifact_paths
     self.skip_reason = skip_reason
     self.parallelism = parallelism
     self.timeout_in_minutes = timeout_in_minutes
-    super().__init__(**kwargs)
 
   def asdict(self) -> dict:
     d = super().asdict()
@@ -97,7 +97,7 @@ class Command(Step):
         d["plugins"][plugin.name] = plugin.args
 
     if self.manual_retry or self.automatic_retries:
-      retry = {}
+      retry: Dict[str, Any] = {}
       if self.manual_retry:
         retry["manual"] = self.manual_retry.asdict()
       if self.automatic_retries:
@@ -105,7 +105,7 @@ class Command(Step):
       d["retry"] = retry
 
     if self.soft_fail:
-      if type(self.soft_fail) == list:
+      if isinstance(self.soft_fail, list):
         d["soft_fail"] = [{"exit_status": i} for i in self.soft_fail]
       elif self.soft_fail is True:
         d["soft_fail"] = True
