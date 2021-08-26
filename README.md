@@ -25,7 +25,6 @@ app = Target.src('src/app').prio(10)
 app >> lib
 py_files = Target('**/*.py')
 
-coverage = Step('Collect code coverage', 'script/coverage-collector.sh')
 
 
 
@@ -34,7 +33,7 @@ coverage = Step('Collect code coverage', 'script/coverage-collector.sh')
 #
 
 # You can inherit from Command to apply env vars and agents targeting to
-# all steps with that class. Those class properties will be merged in reverse-MRO
+# all steps with that class. Those class properties will be merged in reverse-MRO.
 class Linux(Command):
   env = {
     "PYTHON_PATH": "/usr/bin/python3"
@@ -47,7 +46,10 @@ class LinuxHighCpu(Linux):
   agents = {
     "instance": "large"
   }
-
+  
+# If you want to declare dependencies, you can create variables for certain
+# steps to be used below.
+coverage = Command('Collect and publish code coverage', 'script/coverage-collector.sh')
 
 pipeline = Pipeline(
   Group(
@@ -55,7 +57,7 @@ pipeline = Pipeline(
       'Run app tests',
       'script/test-app.sh',
       targets=[target_app],
-    ) << coverage,
+    ),
     Linux(
       'Run library tests',
       'script/test-lib.sh',
@@ -73,12 +75,12 @@ pipeline = Pipeline(
     './script/pylint.sh',
     targets=py_files,
     env={PYENV: "project-3.6.3"}
-  ) << coverage,
-  Command('Publish test artifacts ', './script/publish-test-results.sh')
+  ),
+  Command('Publish test artifacts ', './script/publish-test-artifacts.sh')
 )
 
 #
-# 3. Filter your pipeline against targets matching changes from base:
+# 3. Filter your pipeline against targets matching changes from base (optional):
 #
 filtered = pipeline
 if base_branch := os.getenv('BUILDKITE_BASE_BRANCH'):
