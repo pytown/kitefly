@@ -10,7 +10,6 @@ pip install kitefly
 
 ## Usage
 
-
 Create a pipeline file in your repository (e.g. `generate_pipeline.py`). Here's a simple example:
 ```py
 #!/usr/bin/env python
@@ -56,17 +55,17 @@ pipeline = Pipeline(
     LinuxHighCpu(
       'Run app tests',
       'script/test-app.sh',
-      targets=[target_app],
+      targets=[app],
     ),
     Linux(
       'Run library tests',
       'script/test-lib.sh',
-      targets=[target_lib],
+      targets=[lib],
     ),
     Command(
       'Run e2e tests',
       'script/e2e.sh',
-      targets=[target_app, target_lib]
+      targets=[app, lib]
     )
   ) << coverage
   Wait(),
