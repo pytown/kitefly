@@ -19,7 +19,7 @@ class GitFilter(Filter):
         if not self.base_branch:
             return True
         for filepath in self._files_changed_since_branch(self.base_branch):
-            for target in step.targets:
+            for target in step.get_targets():
                 if target.matches(filepath):
                     return True
         return False

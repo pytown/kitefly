@@ -9,8 +9,13 @@ has() {
   type "$1" &>/dev/null
 }
 
+echo_ok() {
+  echo "✅ $*"
+}
+
 if ! has pyenv; then
-  echo "Please install pyenv, and then run the bootsrapper again"
+  echo "🛑 Please install pyenv, and then run the bootstrapper again"
+  echo "🛑 See: https://github.com/pyenv/pyenv#installation"
   exit 1
 fi
 
@@ -19,9 +24,17 @@ if [ -z "$PYTHON_VERSION" ]; then
   PYTHON_VERSION="$DEFAULT_PYTHON"
 fi
 
-PYENV_VERSION="kitefly-$PYTHON_VERSION"
+VENV="kitefly-$PYTHON_VERSION"
 
-pyenv virtualenv "$PYTHON_VERSION" "$PYENV_VERSION"
+if pyenv versions | grep "$VENV" &>/dev/null; then
+  echo_ok "pyenv exists: $VENV"
+else
+  pyenv virtualenv "$PYTHON_VERSION" "$VENV"
+  echo_ok "created pyenv: $VENV"
+fi
 
 cd "$ROOT"
-echo "$PYENV_VERSION" > .python-version
+echo "$VENV" > ".python-version"
+
+pip install -r "dev_requirements.txt" | grep -v 'already satisfied' ||:
+echo_ok "bootstrapping complete"

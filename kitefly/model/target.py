@@ -1,6 +1,7 @@
 from typing import Generator, List, Set, Iterable, Union, Pattern
 from ..util import glob
 
+
 class TargetPattern:
     GLOB_ALL = object()
 
@@ -37,18 +38,20 @@ class Target:
 
     def __init__(
         self,
-        sources: Iterable[Union[str, Pattern]],
-        source: Union[str, Pattern] = "",
+        sources: Union[Iterable[Union[str, Pattern]], str, Pattern],
         priority: int = 0,
         name: str = "",
     ):
-        self.patterns = [TargetPattern(p) for p in sources]
-        if source:
-            self.patterns.append(TargetPattern(source))
+        if type(sources) == str or isinstance(sources, Pattern):
+            self.patterns = [TargetPattern(sources)]
+        elif type(sources) == list or type(sources) == tuple:
+            self.patterns = [TargetPattern(p) for p in sources]
         self.depends_on: List[Target] = []
         self.name = name
-        self.priority = priority or getattr(self, "class_priority", 0)
+        default_priority = getattr(self, "priority", 0)
+        self.priority = priority or default_priority
 
+    @property
     def dependencies(self) -> Set["Target"]:
         """
         Return distinct set of Targets in the dependency graph
@@ -56,7 +59,7 @@ class Target:
         deps: Set["Target"] = set()
         for target in self.depends_on:
             deps.add(target)
-            deps |= target.dependencies()
+            deps |= target.dependencies
         return deps
 
     def _iterate_patterns(self) -> Generator[TargetPattern, None, None]:

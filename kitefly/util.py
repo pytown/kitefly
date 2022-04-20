@@ -2,21 +2,24 @@ import os
 import re
 from typing import Any, Iterable, Pattern, TypeVar, Union, cast
 
-RE_NONID = re.compile(r'[^a-zA-Z0-9_]')
-RE_MULTI_US = re.compile(r'__+')
-T = TypeVar('T')
-ST = TypeVar('ST')
+RE_NONID = re.compile(r"[^a-zA-Z0-9_]")
+RE_MULTI_US = re.compile(r"__+")
+T = TypeVar("T")
+ST = TypeVar("ST")
 
 KEY_COUNT = {}
+
 
 def generate_key(name: str) -> str:
     """
     Given a display name, generate a global unique value suitable
     for use as a step key in Buildkite.
     """
+    if not name:
+        return ""
     norm = name.lower()
     for regex in (RE_NONID, RE_MULTI_US):
-        norm = regex.sub('_', norm)
+        norm = regex.sub("_", norm)
     if norm not in KEY_COUNT:
         KEY_COUNT[norm] = 1
         return norm
@@ -43,7 +46,8 @@ def as_iterable(v: Union[T, Iterable[T]]) -> Iterable[T]:
     if is_iterable(v):
         return cast(Iterable, v)
     else:
-        return cast(T, v),
+        return (cast(T, v),)
+
 
 def glob(pattern: str) -> Pattern:
     """
@@ -51,5 +55,11 @@ def glob(pattern: str) -> Pattern:
     using the provided glob pattern.
     """
     escaped = re.escape(pattern)
-    pattern = escaped.replace("\\*\\*", ".*").replace("\\*", f"[^{os.sep}]+")
+    globkey = "__:GLOB:__"
+    pattern = (
+        escaped.replace("\\*\\*/", globkey)
+        .replace("\\*\\*", globkey)
+        .replace("\\*", f"[^{os.sep}]*")
+        .replace(globkey, ".*")
+    )
     return re.compile(pattern)
