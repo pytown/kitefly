@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from .step import Step
 
@@ -81,6 +81,8 @@ class TextField(Field):
       d["default"] = self.default
     return d
 
+BlockedState = Union[Literal["passed"], Literal["failed"], Literal["running"]]
+
 class Input(Step):
   """
   A step that prompts the user for information that can be used in
@@ -93,7 +95,7 @@ class Input(Step):
     label: str,
     prompt: str = "",
     fields: Optional[List[Field]] = None,
-    blocked_state: str = "",
+    blocked_state: BlockedState = "passed",
     **kwargs
   ):
     self.prompt = prompt
