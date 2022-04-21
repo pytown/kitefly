@@ -1,7 +1,10 @@
 steps:
-- command: script/build.sh
-  key: run_build
-  label: Run Build
-- command: script/test.sh
-  key: run_tests__kf__1
-  label: Run Tests
+- group: my_group
+  key: my_group
+  steps:
+  - command: script/build.sh
+    key: run_build
+    label: Run Build
+  - command: script/test.sh
+    key: run_tests
+    label: Run Tests

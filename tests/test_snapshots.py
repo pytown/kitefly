@@ -1,8 +1,10 @@
+import cmd
 import os
 
 from kitefly import (
     AutomaticRetry,
     BuildAttributes,
+    Block,
     Pipeline,
     Command,
     Group,
@@ -16,6 +18,7 @@ from kitefly import (
     Trigger,
     Wait,
 )
+from kitefly.model.input import Block
 from kitefly.model.retry import ManualRetry
 
 snapshot_count = {}
@@ -30,7 +33,6 @@ def check_snapshot(name: str, pipeline: Pipeline):
         count = snapshot_count[name]
         snap_name += "-" + str(count)
     snap_name += ".yml"
-    # pipeline = pipeline.filtered(GitFilter(base_branch="main"))
     output = pipeline.asyaml()
     snapshots = os.path.join(os.path.dirname(__file__), "__snapshots__")
     snap_file = os.path.join(snapshots, snap_name)
@@ -54,17 +56,24 @@ def check_snapshot(name: str, pipeline: Pipeline):
 
 
 def test_pipeline_one_step():
-    check_snapshot("one-step", Pipeline(Command("Run Tests", "script/test.sh")))
+    check_snapshot("one-step", Pipeline([Command("Run Tests", "script/test.sh")]))
 
 
 def test_pipeline_group():
     check_snapshot(
         "group",
         Pipeline(
-            Group(
-                Command("Run Build", "script/build.sh"),
-                Command("Run Tests", "script/test.sh"),
-            )
+            [
+                Group(
+                    [
+                        Command("Run Build", "script/build.sh"),
+                        Command("Run Tests", "script/test.sh"),
+                    ],
+                    label="my_group",
+                ),
+                Wait(),
+                Wait()
+            ]
         ),
     )
 
@@ -73,11 +82,16 @@ def test_pipeline_step_with_deps():
     check_snapshot(
         "group-with-deps",
         Pipeline(
-            Group(
-                Command("Run Build", "script/build.sh"),
-                Command("Run Tests", "script/test.sh"),
-            )
-            << Command("Collect Results", "script/collect-results.sh")
+            [
+                Group(
+                    [
+                        Command("Run Build", "script/build.sh"),
+                        Command("Run Tests", "script/test.sh"),
+                    ],
+                    label="Full Test Suite",
+                )
+                << Command("Collect Results", "script/collect-results.sh")
+            ]
         ),
     )
 
@@ -102,72 +116,93 @@ def test_full_example():
     check_snapshot(
         "full-example",
         Pipeline(
-            Group(
-                LinuxHighCpuCommand(
-                    "Run Build",
-                    "script/build.sh",
-                    targets=[py_test_files],
-                    plugins=[Plugin("coverage", {"token": "foo"})],
-                    timeout_in_minutes=60,
-                    env={"ENABLE_INSTRUMENTATION": "1"},
+            [
+                Group(
+                    [
+                        LinuxHighCpuCommand(
+                            "Run Build",
+                            "script/build.sh",
+                            targets=[py_test_files],
+                            plugins=[Plugin("coverage", {"token": "foo"})],
+                            timeout_in_minutes=60,
+                            env={"ENABLE_INSTRUMENTATION": "1"},
+                        ),
+                        LinuxCommand(
+                            "Run Tests",
+                            "script/test.sh",
+                            parallelism=2,
+                            priority=100,
+                            soft_fail=True,
+                        ),
+                        Command(
+                            "Test docs",
+                            "test-doc.sh",
+                            targets=[md_files.prio(10)],
+                            artifact_paths=["docs-generated/**"],
+                            automatic_retries=[AutomaticRetry(1, exit_code=2)],
+                            soft_fail=[2, 3],
+                        ),
+                    ]
+                )
+                << test_results,
+                Wait(continue_on_failure=True),
+                Input(
+                    label="Get trigger input",
+                    prompt="Enter the password:",
+                    fields=[
+                        TextField(
+                            "password", "Password", hint="The shared team password"
+                        ),
+                        SelectField(
+                            "build_type",
+                            "Build Type",
+                            options=[
+                                Option("CI", "ci"),
+                                Option("Local", "local"),
+                            ],
+                            hint="The shared team password",
+                            required=False,
+                            multiple=True,
+                            default="local",
+                        ),
+                    ],
+                    blocked_state="running",
                 ),
-                LinuxCommand(
-                    "Run Tests", "script/test.sh", parallelism=2, priority=100, soft_fail=True
+                Trigger(
+                    pipeline="my-pipe",
+                    build=BuildAttributes(
+                        message="Automatic Build",
+                        commit="HEAD",
+                        branch="develop",
+                        env={"FOO": 1},
+                        meta_data={"FOO": 1},
+                    ),
+                    label="Run My Pipe",
+                    asynchronous=True,
+                ),
+                Wait(),
+                Block(
+                    "Deployment Gate",
+                    "Enter 'deploy'",
+                    [TextField(key="confirmation", name="Confirmation", default="yes")],
+                ),
+                CommonCommand(
+                    "Deploy",
+                    "scripts/deploy.sh",
+                    concurrency=1,
+                    concurrency_group="deployment",
+                    automatic_retries=2,
+                    manual_retry=ManualRetry(
+                        allowed=True, permit_on_passed=True, reason="Re-deploy"
+                    ),
+                    artifact_paths="build-artifacts/**;artifacts/**",
                 ),
                 Command(
-                    "Test docs",
-                    "test-doc.sh",
-                    targets=[md_files.prio(10)],
-                    artifact_paths=["docs-generated/**"],
-                    automatic_retries=[AutomaticRetry(1, exit_code=2)],
-                    soft_fail=[2, 3],
+                    "Skipped command", "skipped.sh", skip_reason="Needs to be fixed"
                 ),
-            )
-            << test_results,
-            Wait(),
-            Input(
-                label="Get trigger input",
-                prompt="Enter the password:",
-                fields=[
-                    TextField("password", "Password", hint="The shared team password"),
-                    SelectField(
-                        "build_type",
-                        "Build Type",
-                        options=[
-                            Option("CI", "ci"),
-                            Option("Local", "local"),
-                        ],
-                        hint="The shared team password",
-                    ),
-                ],
-                blocked_state="running",
-            ),
-            Trigger(
-                pipeline="my-pipe",
-                build=BuildAttributes(
-                    message="Automatic Build",
-                    commit="HEAD",
-                    branch="develop",
-                    env={"FOO": 1},
-                ),
-                label="Run My Pipe",
-                asynchronous=True,
-            ),
-            Wait(),
-            Input(
-                "Deployment Gate",
-                "Enter 'deploy'",
-                [TextField(key="confirmation", name="Confirmation")],
-            ),
-            CommonCommand(
-                "Deploy",
-                "scripts/deploy.sh",
-                concurrency=1,
-                concurrency_group="deployment",
-                automatic_retries=2,
-                manual_retry=ManualRetry(allowed=True, permit_on_passed=True),
-                artifact_paths="build-artifacts/**;artifacts/**",
-            ),
-            Command("Skipped command", "skipped.sh", skip_reason="Needs to be fixed"),
+                # These should be stripped from final output:
+                Wait(),
+                Wait(),
+            ]
         ).filtered(NoopFilter()),
     )

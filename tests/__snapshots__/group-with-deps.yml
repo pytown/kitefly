@@ -1,13 +1,16 @@
 steps:
-- command: script/build.sh
-  key: run_build__kf__1
-  label: Run Build
-- command: script/test.sh
-  key: run_tests__kf__2
-  label: Run Tests
+- group: Full Test Suite
+  key: full_test_suite
+  steps:
+  - command: script/build.sh
+    key: run_build
+    label: Run Build
+  - command: script/test.sh
+    key: run_tests
+    label: Run Tests
 - command: script/collect-results.sh
   depends_on:
-  - run_build__kf__1
-  - run_tests__kf__2
+  - run_build
+  - run_tests
   key: collect_results
   label: Collect Results
