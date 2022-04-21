@@ -1,6 +1,7 @@
 import os
 
 from kitefly import GitFilter, Command, Target, Pipeline
+from kitefly.filter.filter import Filter
 import kitefly.filter.git_filter
 
 
@@ -36,10 +37,15 @@ def test_git_filter():
     with GitMocked(["README.md", "app/file.py"]):
         c1 = Command("Run cmd", "cmd.sh", targets=[Target("**/*.py")])
         c2 = Command("Library Tests", "libtest.sh", targets=[Target("lib/**/*.py")])
-        steps = Pipeline(c1, c2).filtered(GitFilter(base_branch="main")).steps()
+        steps = Pipeline([c1, c2]).filtered(GitFilter(base_branch="main")).steps
         assert len(steps) == 1
         assert steps[0].key == "run_cmd"
 
         # Filtering should not happen without a base branch
-        steps = Pipeline(c1, c2).filtered(GitFilter()).steps()
+        steps = Pipeline([c1, c2]).filtered(GitFilter()).steps
         assert len(steps) == 2
+
+
+def test_base_filter():
+    f = Filter()
+    assert f(None) == False

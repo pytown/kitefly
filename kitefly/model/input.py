@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from .step import Step
 
@@ -11,8 +11,8 @@ class Field:
   def __init__(self, key: str):
     self.key = key
 
-  def asdict(self) -> Dict[str, Any]:
-    raise NotImplementedError("Field is an abstract class")
+  def asdict(self) -> dict[str, Any]:
+    return {"key": self.key}
 
 
 class SelectField(Field):
@@ -20,11 +20,11 @@ class SelectField(Field):
     self,
     key: str,
     name: str,
-    options: List[Option],
+    options: list[Option],
     hint: str = "",
     required: bool = True,
     multiple: bool = False,
-    default: Union[str, List[str]] = ""
+    default: Union[str, list[str]] = ""
   ):
     super().__init__(key)
     self.name = name
@@ -35,11 +35,11 @@ class SelectField(Field):
     self.default = default
 
   def asdict(self) -> dict:
-    d: Dict[str, Any] = {
-      "key": self.key,
+    d = super().asdict()
+    d.update({
       "select": self.name,
       "options": []
-    }
+    })
     for option in self.options:
       d["options"].append({
         "label": option.label,
@@ -73,8 +73,12 @@ class TextField(Field):
     self.hint = hint
     self.default = default
 
-  def asdict(self) -> Dict[str, Any]:
-    d: Dict[str, Any] = {"key": self.key, "required": self.required, "text": self.name}
+  def asdict(self) -> dict[str, Any]:
+    d = super().asdict()
+    d.update({
+      "required": self.required,
+      "text": self.name
+    })
     if self.hint:
       d["hint"] = self.hint
     if self.default:
@@ -94,7 +98,7 @@ class Input(Step):
     self,
     label: str,
     prompt: str = "",
-    fields: Optional[List[Field]] = None,
+    fields: Optional[list[Field]] = None,
     blocked_state: BlockedState = "passed",
     **kwargs
   ):
@@ -106,7 +110,7 @@ class Input(Step):
 
   def asdict(self) -> dict:
     d = super().asdict()
-    d["block"] = self.label
+    d["input"] = self.label
     if self.prompt:
       d["prompt"] = self.prompt
     if self.fields:

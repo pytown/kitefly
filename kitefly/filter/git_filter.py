@@ -11,7 +11,9 @@ from ..model.target import Target
 
 class GitFilter(Filter):
     def __init__(self, base_branch: str = "") -> None:
-        self.base_branch = base_branch or os.environ.get("BUILDKITE_BASE_BRANCH", "")
+        self.base_branch = base_branch or os.environ.get(
+            "BUILDKITE_PULL_REQUEST_BASE_BRANCH", ""
+        )
         self.match_cache: Dict[Target, bool] = {}
         super().__init__()
 

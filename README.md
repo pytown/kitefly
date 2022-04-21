@@ -1,9 +1,7 @@
-    
- [![lint and tests](https://github.com/pytown/kitefly/actions/workflows/test.yml/badge.svg)](https://github.com/pytown/kitefly/actions/workflows/test.yml)
- [![codecov](https://codecov.io/gh/pytown/kitefly/branch/main/graph/badge.svg?token=Y4EWTI5ZYE)](https://codecov.io/gh/pytown/kitefly) 
+[![lint and tests](https://github.com/pytown/kitefly/actions/workflows/test.yml/badge.svg)](https://github.com/pytown/kitefly/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/pytown/kitefly/branch/main/graph/badge.svg?token=Y4EWTI5ZYE)](https://codecov.io/gh/pytown/kitefly)
 
-![Kitefly](doc/img/logo.png) 
- 
+![Kitefly](doc/img/logo.png)
 
 The KiteFly library allows you to generate Buildkite pipeline yaml using type-checked composable models, and also provides the ability to filter pipelines based on matching source files on monorepo pull requests.
 
@@ -16,6 +14,7 @@ pip install kitefly
 ## Usage
 
 Create a pipeline file in your repository (e.g. `generate_pipeline.py`). Here's a simple example:
+
 ```py
 #!/usr/bin/env python
 # File: generate_pipeline.py
@@ -50,13 +49,13 @@ class LinuxHighCpu(Linux):
   agents = {
     "instance": "large"
   }
-  
+
 # If you want to declare dependencies, you can create variables for certain
 # steps to be used below.
 coverage = Command('Collect and publish code coverage', 'script/coverage-collector.sh')
 
-pipeline = Pipeline(
-  Group(
+pipeline = Pipeline([
+  Group([
     LinuxHighCpu(
       'Run app tests',
       'script/test-app.sh',
@@ -72,7 +71,7 @@ pipeline = Pipeline(
       'script/e2e.sh',
       targets=[app, lib]
     )
-  ) << coverage
+  ]) << coverage
   Wait(),
   Command(
     'Run pylint',
@@ -81,25 +80,26 @@ pipeline = Pipeline(
     env={PYENV: "project-3.6.3"}
   ),
   Command('Publish test artifacts ', './script/publish-test-artifacts.sh')
-)
+])
 
 #
 # 3. Filter your pipeline against targets matching changes from base (optional):
+#    By default, this will use the BUILDKITE_PULL_REQUEST_BASE_BRANCH environmental variable.
 #
-filtered = pipeline
-if base_branch := os.getenv('BUILDKITE_BASE_BRANCH'):
-  filtered = pipeline.filter(GitFilter(base_branch=base_branch))
+filtered = pipeline.filter(GitFilter())
 
 #
-# 4. Print out the Pipeline YAML
+# 4. Print out the Pipeline YAML. Alternatively, you could write it to a file
+#    and submit that to buildkite-agent pipeline upload.
 #
 print(filtered.asyaml())
 ```
 
 The pipeline can now be generated as the main executor step in Buildkite:
+
 ```
 pip install kitefly
-generate_pipeline.py | buildkite-agent upload
+generate_pipeline.py | buildkite-agent pipeline upload
 ```
 
 ## About Filtering
@@ -107,6 +107,7 @@ generate_pipeline.py | buildkite-agent upload
 Kitefly provides a model to associate build steps with source "targets", enabling filtering to run fewer builds. This is particularly useful for monorepos.
 
 For example, if the `git ls-files <buildkite-branch>..<base-branch>` is:
+
 ```
 src/lib/util.ts
 ```
@@ -114,6 +115,7 @@ src/lib/util.ts
 Then the `target_lib` target will match, since its filepath spec includes `src/lib`, and `target_app` will also be included in the list of targets since `target_app` has a target dependency on `target_lib`.
 
 If, on the other hand, the list of files reported by git is:
+
 ```
 src/infra/tool.py
 ```
@@ -128,4 +130,3 @@ For each of the declared steps, a "key" field will automatically be generated ba
 ## License
 
 [MIT](LICENSE.md)
-

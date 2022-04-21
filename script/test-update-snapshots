@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+rm "$ROOT"/tests/__snapshots__/*.yml
+"$ROOT/script/test" || "$ROOT/script/test"

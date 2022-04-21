@@ -35,6 +35,7 @@ def test_attrs():
         branches="my-branches",
         other="foobar",
     )
+    assert "Run command" in str(c)
     assert c.asdict() == {
         "allow_dependency_failure": True,
         "branches": "my-branches",
