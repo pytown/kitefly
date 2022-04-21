@@ -1,3 +1,4 @@
+from typing import List
 
 from .model import Target
 from .git import Git

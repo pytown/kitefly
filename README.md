@@ -1,6 +1,6 @@
 ![Kitefly](doc/img/logo.png)
 
-Dynamically generate Buildkite pipeline files with composable python models
+The KiteFly library allows you to generate Buildkite pipeline yaml using composable models, and also dynamically filter pipeline steps based on base-branch comparisons and supplied tags.
 
 ## Installation
 
@@ -24,7 +24,7 @@ py_files = Target('**/*.py')
 test_results = Step('Collect test results', 'script/test-collector.sh')
 coverage = Step('Collect code coverage', 'script/coverage-collector.sh')
 
-# You can inherit from Command to apply env + agents targeting to
+# You can inherit from Command to apply env vars and agents targeting to
 # all steps with that class. Those class properties will be merged in reverse-MRO
 class Linux(Command):
   env = {
@@ -34,9 +34,14 @@ class Linux(Command):
     "os": "linux"
   }
 
+class LinuxHighCpu(Linux):
+  agents = {
+    "instance": "large"
+  }
+
 run(Pipeline(
   Group(
-    Linux(
+    LinuxHighCpu(
       'Run app tests',
       'script/test-app.sh',
       targets=[target_app],

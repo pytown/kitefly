@@ -12,6 +12,7 @@ wcmatch = "^7.2"
 
 [tool.poetry.dev-dependencies]
 pytest = { version = "^6.2.1", python = "^3.6" }
+pytest-coverage = "^0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

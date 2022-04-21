@@ -1,11 +1,10 @@
 from typing import Iterable, List, Optional, Union
-from copy import deepcopy
 
 from .plugin import Plugin
 from .step import Step
 from .retry import AutomaticRetry, ManualRetry
 
-from ..util import generate_key, as_tuple
+from ..util import generate_key, as_iterable
 
 class Command(Step):
   """
@@ -33,7 +32,6 @@ class Command(Step):
       plugins: Optional[List[Plugin]] = None,
       **kwargs
     ):
-    cls = self.__class__
     self.key = generate_key(label)
     self.label = label
     self.command = command
@@ -70,18 +68,21 @@ class Command(Step):
     # Setup inheritable properties using class-based defaults using MRO
     # to aggregate hash and list types, or determine the first valid value
     # for scalar types like timeout_in_minutes
-    env = {**self.env}
-    agents = {**self.agents}
-    artifact_paths = set(self.artifact_paths)
-    plugins = set(self.plugins)
+    env = {}
+    agents = {}
+    artifact_paths = set(self.artifact_paths or [])
+    plugins = set(self.plugins or [])
     timeout_in_minutes = self.timeout_in_minutes
     for cls in self.classes():
-      env.update(getattr(cls, 'env', {})
+      env.update(getattr(cls, 'env', {}))
       agents.update(getattr(cls, 'agents', {}))
       artifact_paths |= set(getattr(cls, 'artifact_paths', []))
       plugins |= set(getattr(cls, 'plugins', []))
       if not timeout_in_minutes:
         timeout_in_minutes = getattr(cls, 'timeout_in_minutes', 0)
+    env.update(self.env)
+    agents.update(self.agents)
+
     if env:
       d["env"] = env
     if agents:
@@ -120,3 +121,5 @@ class Command(Step):
 
     return d
 
+  def __hash__(self) -> int:
+      return hash(self.key)

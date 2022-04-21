@@ -1,5 +1,6 @@
-from typing import Iterable, List, Optional, Step, Tuple, Union
+from typing import Iterable, List, Optional, Set, Tuple, Union
 
+from .command import Command
 from .group import Group
 from .step import Step
 from .target import Target
@@ -7,21 +8,22 @@ from .wait import Wait
 
 class PipelineFilter:
   def __init__(
-      targets: Optional[Iterable[Target]]=None,
-      only_tags: Iterable[str]=()
-      exclude_tags: Optional[Iterable[str]]=None
+      self,
+      targets: Optional[Iterable[Target]] = None,
+      only_tags: Iterable[str] = (),
+      exclude_tags: Optional[Iterable[str]] = None
   ):
     self.targets = targets
     self.only_tags = only_tags
     self.exclude_tags = exclude_tags
 
-  def include(items: List[Union[Step, Group]], item: Union[Step, Group]):
+  def include(self, items: List[Union[Step, Group]], item: Union[Step, Group]):
     if isinstance(item, Step):
-      if self.targets is not None and not (set(step.targets()) & set(self.targets)):
+      if self.targets is not None and not (set(item.targets()) & set(self.targets)):
         return
-      if self.only_tags and not (set(step.tags()) & set(self.only_tags)):
+      if self.only_tags and not (set(item.tags()) & set(self.only_tags)):
         return
-      if self.exclude_tags and (set(step.tags()) & set(self.exclude_tags)):
+      if self.exclude_tags and (set(item.tags()) & set(self.exclude_tags)):
         return
       items.append(item)
     elif isinstance(item, Group):
@@ -49,16 +51,16 @@ class Pipeline:
 
   def filter(
       self,
-      targets: Optional[Iterable[Target]]=None,
-      only_tags: Iterable[str]=(),
-      exclude_tags: Iterable[str]=()
+      targets: Optional[Iterable[Target]] = None,
+      only_tags: Iterable[str] = (),
+      exclude_tags: Iterable[str] = ()
     ) -> 'Pipeline':
     """
     Filter the pipeline with the optional provided values and return a flattened
     list of steps with duplicate steps (via key) removed.
     """
     filtered = []
-    pf = PipelineFilter(targets=targets, only_tags=tags, exclude_tags=exclude_tags)
+    pf = PipelineFilter(targets=targets, only_tags=only_tags, exclude_tags=exclude_tags)
     for item in self.items:
       pf.include(filtered, item)
     return Pipeline(*filtered)
@@ -71,10 +73,10 @@ class Pipeline:
     2. Multiple Wait steps in a row will be removed from the beginning/end of the step list
     """
     # (1) Flatten
-    # Iterate through items and flatten into a list of Step objects
+    # Iterate through items and flatten Groups into a one-dimensional list of Step objects
     steps: List[Step] = []
     for item in self.items:
-      coll = [step]
+      coll = [item]
       if isinstance(item, Group):
         coll = item.steps()
       for step in coll:
@@ -92,7 +94,7 @@ class Pipeline:
       for step in steps:
         if step not in seen:
           seen.add(step)
-          for dep in step.dependents():
+          for dep in step.dependents:
             if dep not in seen:
               seen.add(dep)
               queue.append(dep)
