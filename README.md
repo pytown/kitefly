@@ -1,4 +1,9 @@
-![Kitefly](doc/img/logo.png)
+    
+ [![lint and tests](https://github.com/pytown/kitefly/actions/workflows/test.yml/badge.svg)](https://github.com/pytown/kitefly/actions/workflows/test.yml)
+ [![codecov](https://codecov.io/gh/pytown/kitefly/branch/main/graph/badge.svg?token=Y4EWTI5ZYE)](https://codecov.io/gh/pytown/kitefly) 
+
+![Kitefly](doc/img/logo.png) 
+ 
 
 The KiteFly library allows you to generate Buildkite pipeline yaml using type-checked composable models, and also provides the ability to filter pipelines based on matching source files on monorepo pull requests.
 
