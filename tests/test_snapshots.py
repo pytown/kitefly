@@ -1,4 +1,4 @@
-from kitefly import Pipeline, Command, generate
+from kitefly import Pipeline, Command, Group, Input, TextField, Wait
 
 import os
 
@@ -11,9 +11,9 @@ def check_snapshot(name: str, pipeline: Pipeline):
   else:
     snapshot_count[name] += 1
     count = snapshot_count[name]
-    snap_name += "-" + count
+    snap_name += "-" + str(count)
   snap_name += '.yml'
-  output = generate(pipeline=pipeline)
+  output = pipeline.asyaml()
   snapshots = os.path.join(os.path.dirname(__file__), '__snapshots__')
   snap_file = os.path.join(snapshots, snap_name)
   os.makedirs(snapshots, exist_ok=True)
@@ -29,3 +29,39 @@ def check_snapshot(name: str, pipeline: Pipeline):
 
 def test_pipeline_one_step():
   check_snapshot('one-step', Pipeline(Command("Run Tests", "script/test.sh")))
+
+def test_pipeline_group():
+  check_snapshot('group', Pipeline(Group(
+    Command("Run Build", "script/build.sh"),
+    Command("Run Tests", "script/test.sh"),
+  )))
+
+def test_pipeline_step_with_deps():
+  check_snapshot('group-with-deps', Pipeline(
+    Group(
+      Command("Run Build", "script/build.sh"),
+      Command("Run Tests", "script/test.sh")
+    ) << Command("Collect Results", "script/collect-results.sh")
+  ))
+
+def test_full_example():
+  test_results = Command("Collect Results", "script/collect-results.sh")
+
+  class CommonCommand(Command):
+    artifact_paths = ["build-artifacts/**"]
+
+  class LinuxCommand(CommonCommand):
+    agents = {"os": "linux"}
+
+  class LinuxHighCpuCommand(LinuxCommand):
+    agents = {"cores": 8}
+
+  check_snapshot('full-example', Pipeline(
+    Group(
+      LinuxHighCpuCommand("Run Build", "script/build.sh"),
+      LinuxCommand("Run Tests", "script/test.sh", parallelism=2)
+    ) << Command("Collect Results", "script/collect-results.sh"),
+    Wait(),
+    Input("Deployment Gate", "Enter 'deploy'", [TextField(key="confirmation", name="Confirmation")]),
+    CommonCommand("Deploy", "scripts/deploy.sh", concurrency=1, concurrency_group="deployment")
+  ))

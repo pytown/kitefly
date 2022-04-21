@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest==6.*,>=6.2.1
+pytest-coverage==0.*,>=0.0
+mypy>=0.910

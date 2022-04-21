@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from .step import Step
 
@@ -11,17 +11,23 @@ class Field:
   def __init__(self, key: str):
     self.key = key
 
+  def asdict(self) -> Dict[str, Any]:
+    raise NotImplementedError("Field is an abstract class")
+
+
 class SelectField(Field):
   def __init__(
     self,
     key: str,
+    name: str,
     options: List[Option],
     hint: str = "",
     required: bool = True,
     multiple: bool = False,
     default: Union[str, List[str]] = ""
   ):
-    super.__init__(key)
+    super().__init__(key)
+    self.name = name
     self.options = options
     self.hint = hint
     self.required = required
@@ -29,8 +35,9 @@ class SelectField(Field):
     self.default = default
 
   def asdict(self) -> dict:
-    d = {
+    d: Dict[str, Any] = {
       "key": self.key,
+      "select": self.name,
       "options": []
     }
     for option in self.options:
@@ -48,29 +55,31 @@ class SelectField(Field):
       d["default"] = self.default
     return d
 
-class InputField(Field):
+class TextField(Field):
   """
-  A Step which waits for user input in order to complete.
+  A text field for Input step.
   """
   def __init__(
     self,
     key: str,
+    name: str,
     required: bool = True,
     hint: str = "",
     default: str = ""
   ):
-    super.__init__(key)
+    super().__init__(key)
+    self.name = name
     self.required = required
     self.hint = hint
     self.default = default
 
-  def asdict(self) -> dict:
-    d = {"key": self.key, "required": self.required}
+  def asdict(self) -> Dict[str, Any]:
+    d: Dict[str, Any] = {"key": self.key, "required": self.required, "text": self.name}
     if self.hint:
       d["hint"] = self.hint
     if self.default:
       d["default"] = self.default
-
+    return d
 
 class Input(Step):
   """

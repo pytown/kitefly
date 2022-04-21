@@ -6,7 +6,7 @@ class Group:
   """
   Entity used to group multiple steps together, useful mostly for adding dependency relationships en-masse
   """
-  def __init__(self, *steps: Tuple[Union[Step, 'Group']]):
+  def __init__(self, *steps: Union[Step, 'Group']):
     self.items: List[Union[Step, Group]] = list(steps)
 
   def __iadd__(self, value: Union[Step, 'Group']) -> 'Group':
