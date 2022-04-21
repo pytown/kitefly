@@ -1,0 +1,7 @@
+steps:
+- command: script/build.sh
+  key: run_build
+  label: Run Build
+- command: script/test.sh
+  key: run_tests__kf__1
+  label: Run Tests

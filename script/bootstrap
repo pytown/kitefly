@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+DEFAULT_PYTHON=3.9.1
+ROOT="$(git rev-parse --show-toplevel)"
+
+has() {
+  type "$1" &>/dev/null
+}
+
+if ! has pyenv; then
+  echo "Please install pyenv, and then run the bootsrapper again"
+  exit 1
+fi
+
+PYTHON_VERSION=$(pyenv versions --bare | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+$' | sort | tail -1)
+if [ -z "$PYTHON_VERSION" ]; then
+  PYTHON_VERSION="$DEFAULT_PYTHON"
+fi
+
+PYENV_VERSION="kitefly-$PYTHON_VERSION"
+
+pyenv virtualenv "$PYTHON_VERSION" "$PYENV_VERSION"
+
+cd "$ROOT"
+echo "$PYENV_VERSION" > .python-version
