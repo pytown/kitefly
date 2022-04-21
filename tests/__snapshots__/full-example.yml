@@ -5,8 +5,14 @@ steps:
   artifact_paths:
   - build-artifacts/**
   command: script/build.sh
+  env:
+    ENABLE_INSTRUMENTATION: '1'
   key: run_build__kf__2
   label: Run Build
+  plugins:
+    coverage:
+      token: foo
+  timeout_in_minutes: 60
 - agents:
     os: linux
   artifact_paths:
@@ -15,23 +21,82 @@ steps:
   key: run_tests__kf__3
   label: Run Tests
   parallelism: 2
-- wait: '~'
+  priority: 100
+  soft_fail: true
+- artifact_paths:
+  - docs-generated/**
+  command: test-doc.sh
+  key: test_docs
+  label: Test docs
+  retry:
+    automatic:
+    - exit_code: 2
+      limit: 1
+  soft_fail:
+  - exit_status: 2
+  - exit_status: 3
+- priority: 0
+  wait: '~'
+- block: Get trigger input
+  blocked_state: running
+  fields:
+  - hint: The shared team password
+    key: password
+    required: true
+    text: Password
+  - hint: The shared team password
+    key: build_type
+    options:
+    - label: CI
+      value: ci
+    - label: Local
+      value: local
+    select: Build Type
+  priority: 0
+  prompt: 'Enter the password:'
+- async: true
+  build:
+    branch: develop
+    commit: HEAD
+    env:
+      FOO: 1
+    message: Automatic Build
+  label: Run My Pipe
+  priority: 0
+  trigger: my-pipe
+- priority: 0
+  wait: '~'
 - block: Deployment Gate
+  blocked_state: passed
   fields:
   - key: confirmation
     required: true
     text: Confirmation
+  priority: 0
   prompt: Enter 'deploy'
 - artifact_paths:
+  - artifacts/**
   - build-artifacts/**
   command: scripts/deploy.sh
   concurrency: 1
   concurrency_group: deployment
   key: deploy
   label: Deploy
+  retry:
+    automatic:
+    - exit_code: '*'
+      limit: 2
+    manual:
+      allowed: true
+      permit_on_passed: true
+- command: skipped.sh
+  key: skipped_command
+  label: Skipped command
+  skip: Needs to be fixed
 - command: script/collect-results.sh
   depends_on:
   - run_build__kf__2
   - run_tests__kf__3
-  key: collect_results__kf__2
+  - test_docs
+  key: collect_results__kf__1
   label: Collect Results

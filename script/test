@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
 
 export PYTHONPATH="."
-pytest ./tests
+cov_report=html
+if [[ "$CI" == "true" ]]; then
+    cov_report=term
+fi
+pytest --cov-report $cov_report --cov ./kitefly ./tests -v "$@"

@@ -1,4 +1,4 @@
-from typing import List, Set, Union
+from typing import Union
 
 from .command import Command
 from .group import Group
@@ -14,7 +14,7 @@ def filter_include(filter: Filter, items: list, item: Union[Step, Group]):
         if filter(item):
             items.append(item)
     elif isinstance(item, Group):
-        filtered_items: List[Step] = []
+        filtered_items: list[Step] = []
         for group_item in item.items:
             filter_include(filter, filtered_items, group_item)
         if not filtered_items:
@@ -31,7 +31,7 @@ class Pipeline:
     """
 
     def __init__(self, *steps: Union[Step, Group]):
-        self.items: List[Union[Step, Group]] = list(steps)
+        self.items: list[Union[Step, Group]] = list(steps)
 
     def __iadd__(self, value: Union[Step, Group]):
         self.items.append(value)
@@ -41,12 +41,12 @@ class Pipeline:
         Filter the pipeline with the optional provided values and return a flattened
         list of steps with duplicate steps (via key) removed.
         """
-        filtered: List[Union[Step, Group]] = []
+        filtered: list[Union[Step, Group]] = []
         for item in self.items:
             filter_include(filter, filtered, item)
         return Pipeline(*filtered)
 
-    def steps(self) -> List[Step]:
+    def steps(self) -> list[Step]:
         """
         Flatten nested group structure into a list of Step objects where:
         1. Steps with keys (Command steps) will be de-duplicated, such that the last instance
@@ -55,9 +55,9 @@ class Pipeline:
         """
         # (1) Flatten
         # Iterate through items and flatten Groups into a one-dimensional list of Step objects
-        steps: List[Step] = []
+        steps: list[Step] = []
         for item in self.items:
-            coll: List[Step] = []
+            coll: list[Step] = []
             if isinstance(item, Step):
                 coll = [item]
             elif isinstance(item, Group):
@@ -68,8 +68,8 @@ class Pipeline:
         # (2) Dependent Inclusion
         # Iterate through all steps and ensure all dependents are added to the list of steps,
         # even if they weren't in the list of steps added directly to the pipeline
-        seen: Set[Step] = set()
-        queue: List[Step] = []
+        seen: set[Step] = set()
+        queue: list[Step] = []
         while queue or not seen:
             for dep in queue:
                 steps.append(dep)
@@ -92,7 +92,7 @@ class Pipeline:
         # Remove duplicate steps and only preserve the final instance of that
         # step in the list.
         steps.reverse()
-        uniq: List[Step] = []
+        uniq: list[Step] = []
         seen = set()
         for step in steps:
             if isinstance(step, Wait) or step not in seen:
@@ -105,7 +105,7 @@ class Pipeline:
         # Remove runs of identical wait steps, and strip waits from the beginning/end
         # of the pipeline
         last_step = None
-        cleaned: List[Step] = []
+        cleaned: list[Step] = []
         for step in steps:
             is_valid = True
             if isinstance(step, Wait):
@@ -118,13 +118,13 @@ class Pipeline:
 
         return steps
 
-    def targets(self) -> List[Target]:
+    def targets(self) -> list[Target]:
         """
         Return the unique set of targets for the current Pipeline
         """
-        seen: Set[Target] = set()
+        seen: set[Target] = set()
         for step in self.steps():
-            for target in step.targets:
+            for target in step.get_targets():
                 seen.add(target)
         return list(seen)
 
@@ -133,4 +133,5 @@ class Pipeline:
 
     def asyaml(self) -> str:
         import yaml
+
         return yaml.dump(self.asdict())

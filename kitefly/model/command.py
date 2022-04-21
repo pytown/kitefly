@@ -18,21 +18,24 @@ class Command(Step):
       self,
       label: str,
       command: str,
-      env: Optional[dict] = None,
+      ## sort alphabetically:
       agents: Optional[dict] = None,
-      automatic_retries: Union[None, int, List[AutomaticRetry]] = None,
-      manual_retry: Optional[ManualRetry] = None,
-      soft_fail: Union[bool, list] = False,
       artifact_paths: Union[str, List[str]] = "",
+      automatic_retries: Union[None, int, List[AutomaticRetry]] = None,
       concurrency: int = 0,
       concurrency_group: str = "",
-      skip_reason: str = "",
+      env: Optional[dict] = None,
+      manual_retry: Optional[ManualRetry] = None,
       parallelism: int = 0,
-      timeout_in_minutes: int = 0,
       plugins: Optional[List[Plugin]] = None,
+      priority: Optional[int] = None,
+      skip_reason: str = "",
+      soft_fail: Union[bool, list] = False,
+      tags: List[str] = None,
+      timeout_in_minutes: int = 0,
       **kwargs
     ):
-    super().__init__(**kwargs)
+    super().__init__(tags=tags, **kwargs)
     self.key = generate_key(label)
     self.label = label
     self.command = command
@@ -49,6 +52,7 @@ class Command(Step):
     self.concurrency = concurrency
     self.concurrency_group = concurrency_group
     self.plugins = plugins
+    self.priority = priority
     self.artifact_paths: List[str] = []
     if artifact_paths:
       if isinstance(artifact_paths, str):
@@ -68,8 +72,8 @@ class Command(Step):
     # Setup inheritable properties using class-based defaults using MRO
     # to aggregate hash and list types, or determine the first valid value
     # for scalar types like timeout_in_minutes
-    env = {}
-    agents = {}
+    env: dict[str, str] = {}
+    agents: dict[str, str] = {}
     artifact_paths = set(self.artifact_paths or [])
     plugins = set(self.plugins or [])
     timeout_in_minutes = self.timeout_in_minutes
@@ -88,14 +92,15 @@ class Command(Step):
     if agents:
       d["agents"] = agents
     if artifact_paths:
-      d["artifact_paths"] = list(artifact_paths)
+      d["artifact_paths"] = list(sorted(list(artifact_paths)))
     if timeout_in_minutes:
       d["timeout_in_minutes"] = timeout_in_minutes
     if plugins:
       d["plugins"] = {}
       for plugin in list(plugins):
         d["plugins"][plugin.name] = plugin.args
-
+    if self.priority is not None:
+      d["priority"] = self.priority
     if self.manual_retry or self.automatic_retries:
       retry: Dict[str, Any] = {}
       if self.manual_retry:
