@@ -3,7 +3,7 @@
 
 ![Kitefly](doc/img/logo.png)
 
-The KiteFly library allows you to generate Buildkite pipeline yaml using type-checked composable models, and also provides the ability to filter pipelines based on matching source files on monorepo pull requests.
+The Kitefly python library can be used to generate Buildkite pipeline YAML using type-checked composable classes. Additionally, a filter mechanism is available which can be used to reduce the number of jobs in pull requests for mono-repos, or other similar applications.
 
 ## Installation
 
@@ -18,25 +18,21 @@ Create a pipeline file in your repository (e.g. `generate_pipeline.py`). Here's 
 ```py
 #!/usr/bin/env python
 # File: generate_pipeline.py
-from kitefly import Command, GitFilter, Group, Pipeline, Target, Wait
 
-#
+from kitefly import *
+
 # 1. Define your Source Targets (Optional)
-#
+
 lib = Target.src('src/lib', 'src/lib-v2')
 app = Target.src('src/app').prio(10)
 app >> lib
 py_files = Target('**/*.py')
 
 
-
-
-#
 # 2. Define the Pipeline
-#
-
 # You can inherit from Command to apply env vars and agents targeting to
 # all steps with that class. Those class properties will be merged in reverse-MRO.
+
 class Linux(Command):
   env = {
     "PYTHON_PATH": "/usr/bin/python3"
@@ -54,43 +50,28 @@ class LinuxHighCpu(Linux):
 # steps to be used below.
 coverage = Command('Collect and publish code coverage', 'script/coverage-collector.sh')
 
+app_tests = LinuxHighCpu('Run app tests', 'script/test-app.sh', targets=[app])
+lib_tests = Linux('Run library tests', 'script/test-lib.sh', targets=[lib])
+e2e_tests = Command('Run E2E Tests', 'script/e2e.sh', targets=[app])
+lint = Command('Run pylint', './script/pylint.sh', targets=py_files, env={PYENV_VERSION: "project-3.6.3"})
+
+lint_phase = Group([lint], label='Lint') 
+test_phase = Group([app_tests, lib_tests, e2e_tests], label='Test')
+test_phase >> lint_phase
+
 pipeline = Pipeline([
-  Group([
-    LinuxHighCpu(
-      'Run app tests',
-      'script/test-app.sh',
-      targets=[app],
-    ),
-    Linux(
-      'Run library tests',
-      'script/test-lib.sh',
-      targets=[lib],
-    ),
-    Command(
-      'Run e2e tests',
-      'script/e2e.sh',
-      targets=[app, lib]
-    )
-  ]) << coverage
+  lint_phase,
+  test_phase,
   Wait(),
-  Command(
-    'Run pylint',
-    './script/pylint.sh',
-    targets=py_files,
-    env={PYENV: "project-3.6.3"}
-  ),
   Command('Publish test artifacts ', './script/publish-test-artifacts.sh')
 ])
 
-#
 # 3. Filter your pipeline against targets matching changes from base (optional):
-#    By default, this will use the BUILDKITE_PULL_REQUEST_BASE_BRANCH environmental variable.
-#
+#    By default, `GitFilter` uses the BUILDKITE_PULL_REQUEST_BASE_BRANCH environmental variable.
 filtered = pipeline.filter(GitFilter())
 
-#
 # 4. Print out the Pipeline YAML. Alternatively, you could write it to a file
-#    and submit that to buildkite-agent pipeline upload.
+#    and then upload it using `buildkite-agent pipeline upload [file]`
 #
 print(filtered.asyaml())
 ```
@@ -106,7 +87,7 @@ generate_pipeline.py | buildkite-agent pipeline upload
 
 Kitefly provides a model to associate build steps with source "targets", enabling filtering to run fewer builds. This is particularly useful for monorepos.
 
-For example, if the `git ls-files <buildkite-branch>..<base-branch>` is:
+For example, if the command `git ls-files <buildkite-branch>..<base-branch>` outputs:
 
 ```
 src/lib/util.ts
@@ -120,12 +101,8 @@ If, on the other hand, the list of files reported by git is:
 src/infra/tool.py
 ```
 
-Then only the `py_files` target will match, and so only the last 2 steps in the provided pipeline will be included in the output:
+Then only the `py_files` target will match, and so only steps targeting `py_files` will be included in the pipeline, along with steps that do not specify any target.
 
-1. "Run pylint" - since the `py_files` target matches
-2. "Collect coverage" - since this step isn't bound to any targets
-
-For each of the declared steps, a "key" field will automatically be generated based on the name of the step. Steps that declare a trigger on another step will have the relevant `depends_on` field set automatically on the triggered step. For example, the `coverage` step will be rendered after the "Run e2e" tests step (since that's the last one that triggers it) and before the Wait() step, and that `coverage` step will have 3 values on its `depends_on` field for the 3 test steps that trigger it. If any of those dependencies is not rendered in the pipeline, it will be automatically removed from the dependency list.
 
 ## License
 
