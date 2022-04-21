@@ -1,6 +1,6 @@
 ![Kitefly](doc/img/logo.png)
 
-The KiteFly library allows you to generate Buildkite pipeline yaml using composable models, and also dynamically filter pipeline steps based on base-branch comparisons and supplied tags.
+The KiteFly library allows you to generate Buildkite pipeline yaml using type-checked composable models, and also provides the ability to filter pipelines based on matching source files on monorepo pull requests.
 
 ## Installation
 
