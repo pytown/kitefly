@@ -14,7 +14,7 @@ pip install kitefly
 Create a pipeline file in your repository (e.g. `my_pipeline.py`). Here's a simple example:
 ```py
 # File: my_pipeline.py
-from kitefly import Command, Group, Target, Wait, run
+from kitefly import Command, Group, Target, Wait, generate
 
 lib = Target.src('src/lib', 'src/lib-v2')
 app = Target.src('src/app').prio(10)
@@ -39,13 +39,13 @@ class LinuxHighCpu(Linux):
     "instance": "large"
   }
 
-run(Pipeline(
+print(generate(Pipeline(
   Group(
     LinuxHighCpu(
       'Run app tests',
       'script/test-app.sh',
       targets=[target_app],
-    ) >> coverage,
+    ) << coverage,
     Linux(
       'Run library tests',
       'script/test-lib.sh',
@@ -65,7 +65,7 @@ run(Pipeline(
     env={PYENV: "project-3.6.3"}
   ) << test_results,
   Command('Publish test artifacts ', './script/publish-test-results.sh')
-))
+)))
 ```
 
 The pipeline can now be generated as follows within Buildkite:
@@ -94,11 +94,6 @@ Then only the `py_files` target will match, and so only the last 2 steps in the 
 2. "Publish test artifacts" - since this step isn't bound to any targets
 
 For each of the declared steps, a "key" field will automatically be generated based on the name of the step. Steps that declare a trigger on another step will have the relevant `depends_on` field set automatically on the triggered step. For example, the `test_collector` step will be rendered after the "Run e2e" tests step (since that's the last one that triggers it) and before the Wait() step, and that `test_collector` step will have 3 values on its `depends_on` field for the 3 test steps that trigger it. If any of those dependencies is not rendered in the pipeline, it will be automatically removed from the dependency list.
-
-For non-Pull-Request builds where there is no declared Buildkite base branch variable, the full pipeline will be executed by default. This behavior can be controlled by various options passed to the `kitefly` executable.
-
-A full listing of models and documentation can be seen at [API.md](API.md).
-
 
 ## License
 
