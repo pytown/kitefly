@@ -15,7 +15,7 @@ pip install kitefly
 
 Create a pipeline file in your repository (e.g. `generate_pipeline.py`). Here's a simple example:
 
-```py
+```
 #!/usr/bin/env python
 # File: generate_pipeline.py
 
