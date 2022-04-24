@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-export PYTHONPATH="."
+cd "$(git rev-parse --show-toplevel)"
+export PYTHONPATH="src"
 cov_report=(--cov-report html)
 if [[ "$CI" == "true" ]]; then
     cov_report=(--cov-report term --cov-report xml)
 fi
-pytest "${cov_report[@]}" --cov ./kitefly ./tests -v "$@"
+pytest "${cov_report[@]}" --cov ./src/kitefly ./tests -v "$@"
